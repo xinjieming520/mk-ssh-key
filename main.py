@@ -143,36 +143,45 @@ def generate_key(algo, comment, output_path, passphrase, force=False):
 def test_connection(folder_name, key_password=None, no_passphrase=False):
     """测试 SSH 连接"""
     host = folder_name
-    console.print(f"\n[info][...] 正在尝试连接 {host}...[/]")
+    console.print(f"\n[info][...] 正在准备连接 {host}...[/]")
     
     # 构建 ssh 命令
-    # 使用 -o BatchMode=yes 可以防止在非预期情况下挂起，但我们需要处理密码
-    # 这里我们简单调用 ssh -T
     cmd = ["ssh", "-T", f"git@{host}"]
     
-    console.print(Panel(f"[yellow]即将执行命令:[/] [cyan]ssh -T git@{host}[/]", title="连接测试", border_style="cyan", expand=True))
+    console.print(Panel(
+        f"[yellow]执行命令:[/] [cyan]ssh -T git@{host}[/]\n"
+        f"[dim]配置状态: {'无密码' if no_passphrase else '需要输入密码'}[/]", 
+        title="连接测试", border_style="cyan", expand=True
+    ))
     
     if not Confirm.ask("[warning]是否继续？[/]"):
         return
 
     try:
-        # 如果有密码且不是 no_passphrase，用户可能需要手动输入（ssh 默认行为）
-        # ssh-keygen 的 -N 参数可以自动填充，但 ssh 命令通常需要 ssh-agent 或密码输入
-        # 我们捕获输出，以便在状态动画消失后再显示结果
-        with console.status("[info]正在建立连接...[/]", spinner="dots"):
-            result = subprocess.run(cmd, capture_output=True, text=True)
+        if no_passphrase:
+            # 无密码模式：保持美观的加载动画并捕获输出
+            with console.status("[info]正在建立连接...[/]", spinner="dots"):
+                result = subprocess.run(cmd, capture_output=True, text=True)
             
-        # 先打印 ssh 的输出内容
-        if result.stdout:
-            console.print(f"\n[info]测试结果:[/]\n{result.stdout.strip()}")
-        if result.stderr:
-            console.print(f"\n[info]附加信息:[/]\n{result.stderr.strip()}")
+            # 状态动画结束后清除并显示结果
+            if result.stdout:
+                console.print(f"\n[info]测试结果:[/]\n{result.stdout.strip()}")
+            if result.stderr:
+                console.print(f"\n[info]附加信息:[/]\n{result.stderr.strip()}")
+        else:
+            # 有密码模式：为了支持交互式输入密码，不能捕获输出，也不使用加载动画
+            console.print("[info]------ SSH 连接输出开始 ------[/]")
+            # 直接运行，不捕获输出，允许用户在终端输入密码
+            result = subprocess.run(cmd)
+            console.print("[info]------ SSH 连接输出结束 ------[/]")
 
-        if result.returncode == 0 or result.returncode == 1:
+        if result.returncode in [0, 1]:
             # ssh -T git@github.com 成功时通常返回 1 并显示欢迎信息
             console.print(f"\n[success][✓] 连接测试完成 (返回码: {result.returncode})[/]")
         else:
             console.print(f"\n[error][✗] 连接失败 (返回码: {result.returncode})[/]")
+            if not no_passphrase:
+                console.print("[dim]提示：如果看到 'Permission denied'，请检查密码是否正确或密钥是否已添加到 Agent。[/]")
     except Exception as e:
         console.print(f"[error][✗] 测试出错: {e}[/]")
 
