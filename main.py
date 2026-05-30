@@ -158,7 +158,7 @@ def main():
     from rich.table import Table
     table = Table(title="当前密钥配置", show_header=False, border_style="cyan")    
     table.add_row("加密算法", args.algo)
-    table.add_row("使用密码", "是" if args.no_passphrase else "否")
+    table.add_row("使用密码", "不使用" if args.no_passphrase else "使用")
     table.add_row("密钥名字", target_name)
     table.add_row("公钥注释", comment)
     table.add_row("输出目录", str(target_dir))   
