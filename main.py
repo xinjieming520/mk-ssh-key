@@ -158,8 +158,16 @@ def test_connection(folder_name, key_password=None, no_passphrase=False):
     try:
         # 如果有密码且不是 no_passphrase，用户可能需要手动输入（ssh 默认行为）
         # ssh-keygen 的 -N 参数可以自动填充，但 ssh 命令通常需要 ssh-agent 或密码输入
-        # 这里仅执行命令，让用户交互
-        result = subprocess.run(cmd, text=True)
+        # 我们捕获输出，以便在状态动画消失后再显示结果
+        with console.status("[info]正在建立连接...[/]", spinner="dots"):
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+        # 先打印 ssh 的输出内容
+        if result.stdout:
+            console.print(f"\n[info]测试结果:[/]\n{result.stdout.strip()}")
+        if result.stderr:
+            console.print(f"\n[info]附加信息:[/]\n{result.stderr.strip()}")
+
         if result.returncode == 0 or result.returncode == 1:
             # ssh -T git@github.com 成功时通常返回 1 并显示欢迎信息
             console.print(f"\n[success][✓] 连接测试完成 (返回码: {result.returncode})[/]")
