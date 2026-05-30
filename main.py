@@ -115,7 +115,7 @@ def generate_key(algo, comment, output_path, passphrase, force=False):
                     f"[info]{pub_content}[/]",
                     title="[yellow]公钥内容 (请复制到 GitHub/GitLab)[/]",
                     border_style="cyan",
-                    expand=False
+                    expand=True
                 ))
            
             # 显示指纹
@@ -127,7 +127,7 @@ def generate_key(algo, comment, output_path, passphrase, force=False):
                     f"[info]{fingerprint}[/]",
                     title="[yellow]密钥指纹 (添加成功后可对比一致性)[/]",
                     border_style="cyan",
-                    expand=False
+                    expand=True
                 ))
 
         else:
@@ -155,7 +155,8 @@ def main():
     
     args = parser.parse_args()
 
-    console.print(Panel.fit("SSH 密钥生成工具", style="cyan", border_style="cyan"))
+    from rich.align import Align
+    console.print(Panel(Align.center("[bold]SSH 密钥生成工具[/]"), style="cyan", border_style="cyan", expand=True))
 
     # 确定路径
     base_dir = get_base_ssh_dir()
