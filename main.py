@@ -185,6 +185,17 @@ def test_connection(folder_name, key_password=None, no_passphrase=False):
     except Exception as e:
         console.print(f"[error][✗] 测试出错: {e}[/]")
 
+def get_version(command):
+    """获取命令的版本号"""
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        output = result.stdout.strip() or result.stderr.strip()
+        # 提取第一行并简单清理
+        version = output.split('\n')[0].replace("git version ", "").replace("OpenSSH_", "")
+        return version
+    except Exception:
+        return None
+
 def main():
     config = load_config()
     
@@ -200,10 +211,22 @@ def main():
     args = parser.parse_args()
 
     from rich.align import Align
+    from rich.text import Text
     
+    # 预先检测版本
+    git_v = get_version(["git", "--version"])
+    ssh_v = get_version(["ssh", "-V"])
+    
+    git_info = f"Git: [success]{git_v}[/]" if git_v else "Git: [error]未安装[/]"
+    ssh_info = f"OpenSSH: [success]{ssh_v.split(',')[0]}[/]" if ssh_v else "OpenSSH: [error]未安装[/]"
+
     while True:
         console.clear()
-        console.print(Panel(Align.center("[bold]SSH 密钥管理工具[/]"), style="cyan", border_style="cyan", expand=True))
+        header_text = Text.from_markup(
+            f"[bold]SSH 密钥管理工具[/]\n[dim]依赖检测：{git_info} | {ssh_info}[/]", 
+            justify="center"
+        )
+        console.print(Panel(header_text, style="cyan", border_style="cyan", expand=True))
         
         console.print("\n[bold cyan]1.[/] 生成 SSH 密钥")
         console.print("[bold cyan]2.[/] 测试 SSH 连接")
