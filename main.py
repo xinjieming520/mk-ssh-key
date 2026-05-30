@@ -140,10 +140,38 @@ def generate_key(algo, comment, output_path, passphrase, force=False):
         console.print(f"[error][✗] 执行出错: {e}[/]")
         sys.exit(1)
 
+def test_connection(folder_name, key_password=None, no_passphrase=False):
+    """测试 SSH 连接"""
+    host = folder_name
+    console.print(f"\n[info][...] 正在尝试连接 {host}...[/]")
+    
+    # 构建 ssh 命令
+    # 使用 -o BatchMode=yes 可以防止在非预期情况下挂起，但我们需要处理密码
+    # 这里我们简单调用 ssh -T
+    cmd = ["ssh", "-T", f"git@{host}"]
+    
+    console.print(Panel(f"[yellow]即将执行命令:[/] [cyan]ssh -T git@{host}[/]", title="连接测试", border_style="cyan", expand=True))
+    
+    if not Confirm.ask("[warning]是否继续？[/]"):
+        return
+
+    try:
+        # 如果有密码且不是 no_passphrase，用户可能需要手动输入（ssh 默认行为）
+        # ssh-keygen 的 -N 参数可以自动填充，但 ssh 命令通常需要 ssh-agent 或密码输入
+        # 这里仅执行命令，让用户交互
+        result = subprocess.run(cmd, text=True)
+        if result.returncode == 0 or result.returncode == 1:
+            # ssh -T git@github.com 成功时通常返回 1 并显示欢迎信息
+            console.print(f"\n[success][✓] 连接测试完成 (返回码: {result.returncode})[/]")
+        else:
+            console.print(f"\n[error][✗] 连接失败 (返回码: {result.returncode})[/]")
+    except Exception as e:
+        console.print(f"[error][✗] 测试出错: {e}[/]")
+
 def main():
     config = load_config()
     
-    parser = argparse.ArgumentParser(description="SSH 密钥生成工具 (Python 版)")
+    parser = argparse.ArgumentParser(description="SSH 密钥生成及测试工具")
     parser.add_argument("--algo", default=config.get("algo", "ed25519"), choices=["ed25519", "rsa", "ecdsa"], help="加密算法")
     parser.add_argument("--comment", default=config.get("comment"), help="密钥注释 (建议填写邮箱)")
     parser.add_argument("--folder-name", default=config.get("folder_name", "new-key"), help="~/.ssh 下的子文件夹名")
@@ -152,63 +180,80 @@ def main():
     parser.add_argument("--key-password", default=config.get("key_password"), help="自动填充的密码短语")
     parser.add_argument("--force", action="store_true", help="强制覆盖现有密钥")
 
-    
     args = parser.parse_args()
 
     from rich.align import Align
-    console.print(Panel(Align.center("[bold]SSH 密钥生成工具[/]"), style="cyan", border_style="cyan", expand=True))
-
-    # 确定路径
-    base_dir = get_base_ssh_dir()
-    target_dir = base_dir / args.folder_name
-    target_name = args.key_name if args.key_name else f"id_{args.algo}"
-    target_path = target_dir / target_name
-    comment = args.comment or "my-email@example.com"
-
-    # 显示预览配置
-    from rich.table import Table
-    table = Table(title="当前密钥配置", show_header=False, border_style="cyan")    
-    table.add_row("加密算法", args.algo)
     
-    # 密码状态
-    if args.no_passphrase:
-        pass_status = "不使用"
-    elif args.key_password:
-        pass_status = "已预设 (从配置加载)"
-    else:
-        pass_status = "生成时手动输入"
+    while True:
+        console.clear()
+        console.print(Panel(Align.center("[bold]SSH 密钥管理工具[/]"), style="cyan", border_style="cyan", expand=True))
         
-    table.add_row("使用密码", pass_status)
-    table.add_row("密钥名字", target_name)
-    table.add_row("公钥注释", comment)
-    table.add_row("输出目录", str(target_dir))   
-    table.add_row("完整路径", str(target_path))
-    
-    console.print(table)
-    console.print("")
+        console.print("\n[bold cyan]1.[/] 生成 SSH 密钥")
+        console.print("[bold cyan]2.[/] 测试 SSH 连接")
+        console.print("[bold cyan]0.[/] 退出程序")
+        
+        choice = Prompt.ask("\n请选择操作", choices=["1", "2", "0"], default="1")
+        
+        if choice == "1":
+            # 确定路径
+            base_dir = get_base_ssh_dir()
+            target_dir = base_dir / args.folder_name
+            target_name = args.key_name if args.key_name else f"id_{args.algo}"
+            target_path = target_dir / target_name
+            comment = args.comment or "my-email@example.com"
 
-    if not Confirm.ask("[warning]是否确认以上配置并继续？[/]"):
-        logger.info("用户取消操作 (确认阶段)")
-        console.print("[error][✗] 操作已取消[/]")
-        sys.exit(0)
+            # 显示预览配置
+            from rich.table import Table
+            table = Table(title="当前密钥配置", show_header=False, border_style="cyan", expand=True)    
+            table.add_row("加密算法", args.algo)
+            
+            # 密码状态
+            if args.no_passphrase:
+                pass_status = "不使用"
+            elif args.key_password:
+                pass_status = "已预设 (从配置加载)"
+            else:
+                pass_status = "生成时手动输入"
+                
+            table.add_row("使用密码", pass_status)
+            table.add_row("密钥名字", target_name)
+            table.add_row("公钥注释", comment)
+            table.add_row("输出目录", str(target_dir))   
+            table.add_row("完整路径", str(target_path))
+            
+            console.print(table)
+            console.print("")
 
-    passphrase = ""
-    if not args.no_passphrase:
-        if args.key_password:
-            passphrase = args.key_password
-            console.print(f"\n[info][✓] 使用预设的密码短语[/]")
-        else:
-            console.print("\n[info][?] 请输入密码短语 (直接回车表示无密码):[/]")
-            passphrase = Prompt.ask("密码短语", password=True)
-            if passphrase:
-                confirm = Prompt.ask("确认密码短语", password=True)
-                if passphrase != confirm:
-                    logger.warning("密码短语二次确认不匹配")
-                    console.print("[error][✗] 密码不匹配！[/]")
-                    sys.exit(1)
+            if not Confirm.ask("[warning]是否确认以上配置并开始生成？[/]"):
+                continue
 
-    # 执行生成
-    generate_key(args.algo, comment, target_path, passphrase, args.force)
+            passphrase = ""
+            if not args.no_passphrase:
+                if args.key_password:
+                    passphrase = args.key_password
+                    console.print(f"\n[info][✓] 使用预设的密码短语[/]")
+                else:
+                    console.print("\n[info][?] 请输入密码短语 (直接回车表示无密码):[/]")
+                    passphrase = Prompt.ask("密码短语", password=True)
+                    if passphrase:
+                        confirm = Prompt.ask("确认密码短语", password=True)
+                        if passphrase != confirm:
+                            logger.warning("密码短语二次确认不匹配")
+                            console.print("[error][✗] 密码不匹配！[/]")
+                            input("\n按回车键继续...")
+                            continue
+
+            # 执行生成
+            generate_key(args.algo, comment, target_path, passphrase, args.force)
+            input("\n操作完成，按回车键返回菜单...")
+
+        elif choice == "2":
+            test_connection(args.folder_name, args.key_password, args.no_passphrase)
+            input("\n测试完成，按回车键返回菜单...")
+            
+        elif choice == "0":
+            console.print("[info]感谢使用，再见！[/]")
+            break
 
 if __name__ == "__main__":
     main()
