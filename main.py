@@ -156,13 +156,13 @@ def main():
 
     # 显示预览配置
     from rich.table import Table
-    table = Table(title="待生成的密钥配置", show_header=False, border_style="cyan")
-    table.add_row("算法", args.algo)
-    table.add_row("注释", comment)
-    table.add_row("保存目录", str(target_dir))
-    table.add_row("文件名", target_name)
+    table = Table(title="当前密钥配置", show_header=False, border_style="cyan")    
+    table.add_row("加密算法", args.algo)
+    table.add_row("使用密码", "是" if args.no_passphrase else "否")
+    table.add_row("密钥名字", target_name)
+    table.add_row("公钥注释", comment)
+    table.add_row("输出目录", str(target_dir))   
     table.add_row("完整路径", str(target_path))
-    table.add_row("不使用密码", "是" if args.no_passphrase else "否")
     
     console.print(table)
     console.print("")
