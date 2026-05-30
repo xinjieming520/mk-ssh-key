@@ -97,6 +97,8 @@ def generate_key(algo, comment, output_path, passphrase, force=False):
         if result.returncode == 0:
             logger.info("密钥生成成功")
             console.print("[success][✓] 密钥生成成功！[/]")
+            console.print(f"[success][✓] 私钥路径: {output_path}[/]")
+            console.print(f"[success][✓] 公钥路径: {pub_key_path}[/]")
             
             # 修复权限
             console.print("[info][...] 正在修复文件权限...[/]")
@@ -106,20 +108,27 @@ def generate_key(algo, comment, output_path, passphrase, force=False):
                 console.print("[warning][!] 权限修复失败，请手动检查。[/]")
 
             # 显示公钥
-            console.print(Panel(f"[yellow]请将以下公钥内容复制到 GitHub/GitLab[/]", title="公钥内容", expand=False))
             if pub_key_path.exists():
-                pub_content = pub_key_path.read_text()
-                console.print(Syntax(pub_content, "bash", theme="monokai", word_wrap=True))
-            
-            console.print(f"\n[success][✓] 私钥路径: {output_path}[/]")
-            console.print(f"[success][✓] 公钥路径: {pub_key_path}[/]")
-            
+                pub_content = pub_key_path.read_text().strip()
+                console.print("\n")
+                console.print(Panel(
+                    f"[info]{pub_content}[/]",
+                    title="[yellow]公钥内容 (请复制到 GitHub/GitLab)[/]",
+                    border_style="cyan",
+                    expand=False
+                ))
+           
             # 显示指纹
             fp_res = subprocess.run(["ssh-keygen", "-lf", str(output_path)], capture_output=True, text=True)
             if fp_res.returncode == 0:
                 fingerprint = fp_res.stdout.strip()
                 logger.info(f"密钥指纹: {fingerprint}")
-                console.print(f"\n[info]密钥指纹: {fingerprint}[/]")
+                console.print(Panel(
+                    f"[info]{fingerprint}[/]",
+                    title="[yellow]密钥指纹 (添加成功后可对比一致性)[/]",
+                    border_style="cyan",
+                    expand=False
+                ))
 
         else:
             err_msg = result.stderr.strip()
@@ -140,6 +149,7 @@ def main():
     parser.add_argument("--folder-name", default=config.get("folder_name", "new-key"), help="~/.ssh 下的子文件夹名")
     parser.add_argument("--key-name", default=config.get("key_name"), help="密钥文件名 (默认根据算法命名)")
     parser.add_argument("--no-passphrase", action="store_true", default=config.get("no_passphrase", False), help="不使用密码短语")
+    parser.add_argument("--key-password", default=config.get("key_password"), help="自动填充的密码短语")
     parser.add_argument("--force", action="store_true", help="强制覆盖现有密钥")
 
     
@@ -158,7 +168,16 @@ def main():
     from rich.table import Table
     table = Table(title="当前密钥配置", show_header=False, border_style="cyan")    
     table.add_row("加密算法", args.algo)
-    table.add_row("使用密码", "不使用" if args.no_passphrase else "使用")
+    
+    # 密码状态
+    if args.no_passphrase:
+        pass_status = "不使用"
+    elif args.key_password:
+        pass_status = "已预设 (从配置加载)"
+    else:
+        pass_status = "生成时手动输入"
+        
+    table.add_row("使用密码", pass_status)
     table.add_row("密钥名字", target_name)
     table.add_row("公钥注释", comment)
     table.add_row("输出目录", str(target_dir))   
@@ -174,14 +193,18 @@ def main():
 
     passphrase = ""
     if not args.no_passphrase:
-        console.print("\n[info][?] 请输入密码短语 (直接回车表示无密码):[/]")
-        passphrase = Prompt.ask("密码短语", password=True)
-        if passphrase:
-            confirm = Prompt.ask("确认密码短语", password=True)
-            if passphrase != confirm:
-                logger.warning("密码短语二次确认不匹配")
-                console.print("[error][✗] 密码不匹配！[/]")
-                sys.exit(1)
+        if args.key_password:
+            passphrase = args.key_password
+            console.print(f"\n[info][✓] 使用预设的密码短语[/]")
+        else:
+            console.print("\n[info][?] 请输入密码短语 (直接回车表示无密码):[/]")
+            passphrase = Prompt.ask("密码短语", password=True)
+            if passphrase:
+                confirm = Prompt.ask("确认密码短语", password=True)
+                if passphrase != confirm:
+                    logger.warning("密码短语二次确认不匹配")
+                    console.print("[error][✗] 密码不匹配！[/]")
+                    sys.exit(1)
 
     # 执行生成
     generate_key(args.algo, comment, target_path, passphrase, args.force)
