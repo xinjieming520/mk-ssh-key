@@ -44,8 +44,9 @@ def load_config():
             console.print(f"[warning][!] 无法读取 config.json: {e}[/]")
     return {}
 
-def get_default_ssh_dir():
-    return Path.home() / ".ssh" / "new-key"
+def get_base_ssh_dir():
+    """返回系统默认的 SSH 根目录 (~/.ssh)"""
+    return Path.home() / ".ssh"
 
 def fix_permissions(key_path):
     """修复 Windows 下私钥文件的权限"""
@@ -136,18 +137,20 @@ def main():
     parser = argparse.ArgumentParser(description="SSH 密钥生成工具 (Python 版)")
     parser.add_argument("--algo", default=config.get("algo", "ed25519"), choices=["ed25519", "rsa", "ecdsa"], help="加密算法")
     parser.add_argument("--comment", default=config.get("comment"), help="密钥注释 (建议填写邮箱)")
-    parser.add_argument("--dir", default=config.get("dir"), help="密钥存储目录")
-    parser.add_argument("--name", default=config.get("name"), help="密钥文件名")
+    parser.add_argument("--folder-name", default=config.get("folder_name", "new-key"), help="~/.ssh 下的子文件夹名")
+    parser.add_argument("--key-name", default=config.get("key_name"), help="密钥文件名 (默认根据算法命名)")
     parser.add_argument("--no-passphrase", action="store_true", default=config.get("no_passphrase", False), help="不使用密码短语")
     parser.add_argument("--force", action="store_true", help="强制覆盖现有密钥")
+
     
     args = parser.parse_args()
 
     console.print(Panel.fit("SSH 密钥生成工具", style="cyan", border_style="cyan"))
 
     # 确定路径
-    target_dir = Path(args.dir) if args.dir else get_default_ssh_dir()
-    target_name = args.name if args.name else f"id_{args.algo}"
+    base_dir = get_base_ssh_dir()
+    target_dir = base_dir / args.folder_name
+    target_name = args.key_name if args.key_name else f"id_{args.algo}"
     target_path = target_dir / target_name
     comment = args.comment or "my-email@example.com"
 
