@@ -93,9 +93,9 @@ try {
         
         # 修复权限（重要！）
         Write-Host "[...] 正在修复文件权限..." -ForegroundColor Cyan
-        icacls $KeyFile /reset > $null 2>&1
-        icacls $KeyFile /inheritance:r > $null 2>&1
-        icacls $KeyFile /grant:r "${env:USERNAME}:(R,W)" > $null 2>&1
+        icacls "$KeyFile" /reset > $null 2>&1
+        icacls "$KeyFile" /inheritance:r > $null 2>&1
+        icacls "$KeyFile" /grant:r "${env:USERNAME}:(R,W)" > $null 2>&1
         Write-Host "[✓] 权限已修复" -ForegroundColor Green
         Write-Host ""
         

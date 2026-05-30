@@ -5,25 +5,34 @@ REM ============================================
 chcp 65001 >nul
 cd /d "%~dp0"
 
-REM 完整路径
-set "FULL_KEY_PATH=%SSH_KEY_DIR%\%KEY_NAME%"
+REM --- 默认配置 ---
+set "COMMENT=my-email@example.com"
+set "ALGORITHM=ed25519"
+set "SSH_KEY_DIR=%USERPROFILE%\.ssh\new-key"
+set "KEY_NAME="
+set "USE_PASSPHRASE=0"
+
+REM --- 加载本地配置 ---
 if exist "config.local.bat" call "config.local.bat"
 
-REM --- 解析命令行参数（优先级高于配置文件）---
+REM --- 解析命令行参数（优先级最高）---
 :parse_args
 if "%1"=="" goto :end_parse
 if /i "%1"=="--no-passphrase" set "USE_PASSPHRASE=0" & shift & goto :parse_args
-if /i "%1"=="--dir" set "SSH_KEY_DIR=%2" & shift & shift & goto :parse_args
-if /i "%1"=="--name" set "KEY_NAME=%2" & shift & shift & goto :parse_args
-if /i "%1"=="--comment" set "COMMENT=%2" & shift & shift & goto :parse_args
-if /i "%1"=="--algo" set "ALGORITHM=%2" & shift & shift & goto :parse_args
+if /i "%1"=="--dir" set "SSH_KEY_DIR=%~2" & shift & shift & goto :parse_args
+if /i "%1"=="--name" set "KEY_NAME=%~2" & shift & shift & goto :parse_args
+if /i "%1"=="--comment" set "COMMENT=%~2" & shift & shift & goto :parse_args
+if /i "%1"=="--algo" set "ALGORITHM=%~2" & shift & shift & goto :parse_args
 if /i "%1"=="--help" goto :show_help
 if /i "%1"=="-h" goto :show_help
 echo [ERROR] 未知参数: %1
 goto :show_help
 :end_parse
 
-REM 重新构建完整路径
+REM 如果未指定文件名，根据算法设置默认文件名
+if "%KEY_NAME%"=="" set "KEY_NAME=id_%ALGORITHM%"
+
+REM 最终确定完整路径
 set "FULL_KEY_PATH=%SSH_KEY_DIR%\%KEY_NAME%"
 
 REM --- 显示配置 ---
