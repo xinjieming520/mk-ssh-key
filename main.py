@@ -212,7 +212,10 @@ def main():
 
             # 显示预览配置
             from rich.table import Table
-            table = Table(title="当前密钥配置", show_header=False, border_style="cyan", expand=True)    
+            table = Table(title="当前密钥配置", show_header=False, border_style="cyan", expand=True)
+            table.add_column(justify="center", style="cyan")
+            table.add_column(justify="left")
+            
             table.add_row("加密算法", args.algo)
             
             # 密码状态
