@@ -44,26 +44,96 @@ def load_config():
             console.print(f"[warning][!] 无法读取 config.json: {e}[/]")
     return {}
 
+def run_command(command):
+    """运行系统命令"""
+    try:
+        # 在 Windows 上使用 shell=True 以支持复杂的命令字符串
+        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        logger.error(f"命令执行失败: {command}")
+        logger.error(f"错误输出: {e.stderr}")
+        raise e
+
 def get_base_ssh_dir():
     """返回系统默认的 SSH 根目录 (~/.ssh)"""
     return Path.home() / ".ssh"
 
-def fix_permissions(key_path):
-    """修复 Windows 下私钥文件的权限"""
-    if os.name == 'nt':
+def deep_fix_permissions():
+    """深度权限修复函数"""
+    if os.name != 'nt':
+        console.print("[warning][!] 深度权限修复仅支持 Windows 系统[/]")
+        return
+
+    console.print(Panel.fit(
+        "[bold cyan]🔐 正在执行深度权限修复...[/]",
+        border_style="cyan"
+    ))
+    console.print()
+
+    config_file = "config.json"
+    ssh_base = str(get_base_ssh_dir())
+    
+    target_paths = [config_file, ssh_base]
+    success_count = 0
+    fail_count = 0
+
+    for path in target_paths:
+        if os.path.exists(path):
+            with console.status(f"[dim]处理中: {path}[/]", spinner="dots"):
+                try:
+                    username = os.environ.get("USERNAME")
+                    if os.path.isdir(path):
+                        run_command(f'takeown /f "{path}" /r /d y')
+                        run_command(f'icacls "{path}" /reset /t /c /q')
+                        run_command(f'icacls "{path}" /grant:r {username}:(OI)(CI)F /t /c')
+                    else:
+                        run_command(f'takeown /f "{path}"')
+                        run_command(f'icacls "{path}" /reset /q')
+                        run_command(f'icacls "{path}" /grant:r {username}:F /c')
+                    success_count += 1
+                except Exception as e:
+                    console.print(f"[red]⚠️  权限修复失败: {path} - {e}[/]")
+                    fail_count += 1
+
+    console.print(f"\n[bold cyan]🔑 正在修复 SSH 敏感文件权限...[/]\n")
+    username = os.environ.get("USERNAME")
+    ssh_files = []
+
+    if os.path.exists(config_file):
+        ssh_files.append(config_file)
+
+    if os.path.exists(ssh_base):
+        for root, dirs, files in os.walk(ssh_base):
+            for file in files:
+                # 匹配 id_rsa, id_ed25519 等私钥文件
+                if file.startswith("id_") and not file.endswith(".pub"):
+                    ssh_files.append(os.path.join(root, file))
+
+    for file_path in ssh_files:
         try:
-            logger.info(f"正在修复权限: {key_path}")
-            # 重置权限并禁用继承，只允许当前用户读取
-            username = os.environ.get("USERNAME")
-            subprocess.run(["icacls", str(key_path), "/reset"], capture_output=True, check=True)
-            subprocess.run(["icacls", str(key_path), "/inheritance:r"], capture_output=True, check=True)
-            subprocess.run(["icacls", str(key_path), "/grant:r", f"{username}:(R,W)"], capture_output=True, check=True)
-            logger.info("权限修复成功")
-            return True
-        except subprocess.CalledProcessError as e:
-            logger.error(f"权限修复失败: {e}")
-            return False
-    return True
+            run_command(f'takeown /f "{file_path}"')
+            run_command(f'icacls "{file_path}" /inheritance:r')
+            run_command(f'icacls "{file_path}" /grant:r {username}:F')
+            run_command(f'icacls "{file_path}" /remove:g "CREATOR OWNER" /q 2>nul')
+            run_command(f'icacls "{file_path}" /remove:g "SYSTEM" /q 2>nul')
+            run_command(f'icacls "{file_path}" /remove:g "Administrators" /q 2>nul')
+            run_command(f'icacls "{file_path}" /remove:g "Users" /q 2>nul')
+            console.print(f"  [green]✅[/] [dim]{os.path.basename(file_path)}[/]")
+            success_count += 1
+        except Exception as e:
+            console.print(f"  [yellow]⚠️  {os.path.basename(file_path)} 修复失败: {e}[/]")
+            fail_count += 1
+
+    # 显示修复结果摘要
+    console.print()
+    result_panel = Panel.fit(
+        f"[bold green]深度修复完成！[/]\n\n"
+        f"[green]✅ 成功: {success_count}[/]\n"
+        f"[red]❌ 失败: {fail_count}[/]" if fail_count > 0 else f"[green]✅ 成功: {success_count}[/]",
+        border_style="green"
+    )
+    console.print(result_panel)
 
 def generate_key(algo, comment, output_path, passphrase, force=False):
     output_path = Path(output_path).expanduser().resolve()
@@ -100,12 +170,7 @@ def generate_key(algo, comment, output_path, passphrase, force=False):
             console.print(f"[success][✓] 私钥路径: {output_path}[/]")
             console.print(f"[success][✓] 公钥路径: {pub_key_path}[/]")
             
-            # 修复权限
-            console.print("[info][...] 正在修复文件权限...[/]")
-            if fix_permissions(output_path):
-                console.print("[success][✓] 权限已修复[/]")
-            else:
-                console.print("[warning][!] 权限修复失败，请手动检查。[/]")
+            console.print("\n[info]提示: 如果后续连接测试失败，请尝试使用主菜单中的 [bold]‘深度修复权限’[/] 功能。[/]")
 
             # 显示公钥
             if pub_key_path.exists():
@@ -180,8 +245,9 @@ def test_connection(folder_name, key_password=None, no_passphrase=False):
             console.print(f"\n[success][✓] 连接测试完成 (返回码: {result.returncode})[/]")
         else:
             console.print(f"\n[error][✗] 连接失败 (返回码: {result.returncode})[/]")
+            console.print("[warning][!] 如果看到 'Permission denied'，强烈建议执行菜单中的 [bold]‘深度修复权限’[/] 后再试。[/]")
             if not no_passphrase:
-                console.print("[dim]提示：如果看到 'Permission denied'，请检查密码是否正确或密钥是否已添加到 Agent。[/]")
+                console.print("[dim]提示：请同时检查密码是否正确或密钥是否已添加到 Agent。[/]")
     except Exception as e:
         console.print(f"[error][✗] 测试出错: {e}[/]")
 
@@ -230,12 +296,13 @@ def main():
         
         console.print("\n[bold cyan]1.[/] 生成 SSH 密钥")
         console.print("[bold cyan]2.[/] 测试 SSH 连接")
+        console.print("[bold cyan]3.[/] 深度修复权限")
         console.print("[bold cyan]0.[/] 退出程序")
         
-        choice = Prompt.ask("\n请选择操作", choices=["1", "2", "0"], default="1")
+        choice = Prompt.ask("\n请选择操作", choices=["1", "2", "3", "0"], default="1")
         
         if choice == "1":
-            # 确定路径
+            # ... (no changes here, just keeping it for context in replace)
             base_dir = get_base_ssh_dir()
             target_dir = base_dir / args.folder_name
             target_name = args.key_name if args.key_name else f"id_{args.algo}"
@@ -293,6 +360,10 @@ def main():
         elif choice == "2":
             test_connection(args.folder_name, args.key_password, args.no_passphrase)
             input("\n测试完成，按回车键返回菜单...")
+
+        elif choice == "3":
+            deep_fix_permissions()
+            input("\n修复完成，按回车键返回菜单...")
             
         elif choice == "0":
             console.print("[info]感谢使用，再见！[/]")
