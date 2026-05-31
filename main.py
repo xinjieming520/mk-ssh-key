@@ -211,10 +211,11 @@ def test_connection(folder_name, key_password=None, no_passphrase=False):
     console.print(f"\n[info][...] 正在准备连接 {host}...[/]")
     
     # 构建 ssh 命令
-    cmd = ["ssh", "-T", f"git@{host}"]
+    # -o StrictHostKeyChecking=accept-new: 自动接受新主机的 key，避免 yes/no 提示导致卡死
+    cmd = ["ssh", "-o", "StrictHostKeyChecking=accept-new", "-T", f"git@{host}"]
     
     console.print(Panel(
-        f"[yellow]执行命令:[/] [cyan]ssh -T git@{host}[/]\n"
+        f"[yellow]执行命令:[/] [cyan]{' '.join(cmd)}[/]\n"
         f"[dim]配置状态: {'无密码' if no_passphrase else '需要输入密码'}[/]", 
         title="连接测试", border_style="cyan", expand=True
     ))
