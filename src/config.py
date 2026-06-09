@@ -20,12 +20,10 @@ CONFIG_LABELS = {
 }
 
 CONFIG_DESCRIPTIONS = {
-    "algo": "密钥生成算法(ed25519/rsa)",
+    "algo": "密钥算法(ed25519/rsa)",
     "passphrase": "true/false(设置/不设置密码)",
     "key_password": "留空时需手动输入",
-    "folder_name": "输出目录(~/.ssh/name)",
-    "key_name": "留空时按密钥算法自动命名",
-    "comment": "公钥末尾的备注(通常填写邮箱)",
+    "comment": "公钥备注(通常填写邮箱)",
 }
 
 
@@ -79,6 +77,15 @@ def format_config_value(key, value):
     return str(value)
 
 
+def get_config_description(key, config):
+    if key == "folder_name":
+        return f"输出目录(~/.ssh/{config['folder_name']})"
+    if key == "key_name":
+        key_name = config["key_name"] or f"id_{config['algo']}"
+        return f"公钥文件({key_name}.pub)"
+    return CONFIG_DESCRIPTIONS.get(key, "")
+
+
 def build_config_table(config):
     current_config = get_default_config(config)
     table = Table(
@@ -96,7 +103,7 @@ def build_config_table(config):
         table.add_row(
             CONFIG_LABELS.get(key, key),
             format_config_value(key, value),
-            CONFIG_DESCRIPTIONS.get(key, ""),
+            get_config_description(key, current_config),
         )
     return table
 

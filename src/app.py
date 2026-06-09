@@ -14,7 +14,7 @@ from .ui import console
 
 
 logger = logging.getLogger(__name__)
-xline = "-" * 60
+xline = "-" * 66
 
 
 def build_parser(config):
