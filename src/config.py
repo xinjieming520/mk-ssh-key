@@ -16,8 +16,17 @@ CONFIG_LABELS = {
     "passphrase": "设置密码",
     "key_password": "密码文本",
     "folder_name": "目录名",
-    "key_name": "文件名",
-    "comment": "备注信息",
+    "key_name": "密钥名",
+    "comment": "公钥备注",
+}
+
+CONFIG_DESCRIPTIONS = {
+    "algo": "密钥生成算法(ed25519/rsa)",
+    "passphrase": "true/false(设置/不设置密码)",
+    "key_password": "留空时需手动输入",
+    "folder_name": "输出目录(~/.ssh/name)",
+    "key_name": "留空时按密钥算法自动命名",
+    "comment": "公钥末尾的备注(通常填写邮箱)",
 }
 
 
@@ -81,10 +90,15 @@ def build_config_table(config):
     )
     table.add_column("字段", style="cyan", no_wrap=True, ratio=1)
     table.add_column("值", overflow="fold", ratio=3)
+    table.add_column("说明", style="dim", overflow="fold", ratio=4)
     for key, value in current_config.items():
         if key == "key_password" and not current_config["passphrase"]:
             continue
-        table.add_row(CONFIG_LABELS.get(key, key), format_config_value(key, value))
+        table.add_row(
+            CONFIG_LABELS.get(key, key),
+            format_config_value(key, value),
+            CONFIG_DESCRIPTIONS.get(key, ""),
+        )
     return table
 
 

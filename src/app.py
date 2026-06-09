@@ -14,7 +14,7 @@ from .ui import console
 
 
 logger = logging.getLogger(__name__)
-xline = "-" * 55
+xline = "-" * 60
 
 
 def build_parser(config):
@@ -99,9 +99,9 @@ def main():
         )
         menu_text = Text.from_markup(
             f"{xline}"
-            "\n[bold cyan]1.[/] 生成 SSH 密钥\n"
-            "[bold cyan]2.[/] 测试 SSH 连接\n"
-            "[bold cyan]3.[/] 深度修复权限\n"
+            "\n[bold cyan]1.[/] 生成密钥\n"
+            "[bold cyan]2.[/] 测试连接\n"
+            "[bold cyan]3.[/] 修复权限\n"
             "[bold cyan]4.[/] 修改配置\n"
             "[bold cyan]0.[/] 退出程序"
         )
