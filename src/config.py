@@ -12,7 +12,7 @@ from .ui import console
 logger = logging.getLogger(__name__)
 
 CONFIG_LABELS = {
-    "algo": "密钥加密算法",
+    "algo": "密钥算法",
     "no_passphrase": "不设置密码",
     "key_password": "密码文本",
     "key_name": "文件名",
@@ -68,6 +68,7 @@ def format_config_value(key, value):
 
 
 def build_config_table(config):
+    current_config = get_default_config(config)
     table = Table(
         title="当前配置 (config.json)",
         show_header=True,
@@ -76,7 +77,9 @@ def build_config_table(config):
     )
     table.add_column("字段", style="cyan", no_wrap=True, ratio=1)
     table.add_column("值", overflow="fold", ratio=3)
-    for key, value in get_default_config(config).items():
+    for key, value in current_config.items():
+        if key == "key_password" and current_config["no_passphrase"]:
+            continue
         table.add_row(CONFIG_LABELS.get(key, key), format_config_value(key, value))
     return table
 

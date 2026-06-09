@@ -14,6 +14,7 @@ from .ui import console
 
 
 logger = logging.getLogger(__name__)
+xline = "-" * 55
 
 
 def build_parser(config):
@@ -93,9 +94,10 @@ def main():
     while True:
         console.clear()
         header_text = Text.from_markup(
-            f"[bold]SSH 密钥管理工具[/]\n\n[dim]依赖检测：\n  {git_info} | {ssh_info}[/]"
+            f"[bold]SSH 密钥管理工具[/]\n\n依赖检测：\n  {git_info} | {ssh_info}\n{xline}"
         )
         menu_text = Text.from_markup(
+            f"{xline}"
             "\n[bold cyan]1.[/] 生成 SSH 密钥\n"
             "[bold cyan]2.[/] 测试 SSH 连接\n"
             "[bold cyan]3.[/] 深度修复权限\n"
@@ -109,7 +111,7 @@ def main():
             expand=False,
         ))
 
-        choice = Prompt.ask("\n请选择操作", choices=["1", "2", "3", "4", "0"], default="1")
+        choice = Prompt.ask("\n请选择操作", choices=["1", "2", "3", "4", "0"], default="0")
 
         if choice == "1":
             handle_generate_key(args)
