@@ -2,7 +2,6 @@ import json
 import logging
 from pathlib import Path
 
-from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
@@ -12,12 +11,12 @@ from .ui import console
 logger = logging.getLogger(__name__)
 
 CONFIG_LABELS = {
-    "algo": "密钥算法",
-    "passphrase": "设置密码",
-    "key_password": "密码文本",
-    "folder_name": "目录名",
-    "key_name": "密钥名",
-    "comment": "公钥备注",
+    "algo": "🧮 密钥算法",
+    "passphrase": "🔒 设置密码",
+    "key_password": "🔑 密码文本",
+    "folder_name": "📁 目录名",
+    "key_name": "📄 密钥名",
+    "comment": "💬 公钥备注",
 }
 
 CONFIG_DESCRIPTIONS = {
@@ -115,13 +114,6 @@ def apply_config_to_args(args, config):
 def edit_config(config):
     """交互式修改 config.json"""
     current_config = get_default_config(config)
-
-    console.print(Panel(
-        build_config_table(current_config),
-        title="[bold cyan]修改配置[/]",
-        border_style="cyan",
-        expand=False,
-    ))
 
     algo = Prompt.ask(
         "加密算法",
