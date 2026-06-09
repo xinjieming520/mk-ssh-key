@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 CONFIG_LABELS = {
     "algo": "密钥算法",
-    "no_passphrase": "不设置密码",
+    "passphrase": "设置密码",
     "key_password": "密码文本",
     "key_name": "文件名",
     "comment": "备注信息",
@@ -47,9 +47,13 @@ def save_config(config):
 
 def get_default_config(config):
     """合并默认配置，避免 config.json 缺少字段时菜单显示为空。"""
+    passphrase = config.get("passphrase")
+    if passphrase is None:
+        passphrase = not config.get("no_passphrase", False)
+
     return {
         "algo": config.get("algo", "ed25519"),
-        "no_passphrase": config.get("no_passphrase", False),
+        "passphrase": passphrase,
         "key_password": config.get("key_password", ""),
         "key_name": config.get("key_name"),
         "comment": config.get("comment"),
@@ -78,7 +82,7 @@ def build_config_table(config):
     table.add_column("字段", style="cyan", no_wrap=True, ratio=1)
     table.add_column("值", overflow="fold", ratio=3)
     for key, value in current_config.items():
-        if key == "key_password" and current_config["no_passphrase"]:
+        if key == "key_password" and not current_config["passphrase"]:
             continue
         table.add_row(CONFIG_LABELS.get(key, key), format_config_value(key, value))
     return table
@@ -87,7 +91,7 @@ def build_config_table(config):
 def apply_config_to_args(args, config):
     current_config = get_default_config(config)
     args.algo = current_config["algo"]
-    args.no_passphrase = current_config["no_passphrase"]
+    args.passphrase = current_config["passphrase"]
     args.key_password = current_config["key_password"]
     args.key_name = current_config["key_name"]
     args.comment = current_config["comment"]
@@ -110,12 +114,12 @@ def edit_config(config):
         choices=["ed25519", "rsa", "ecdsa"],
         default=current_config["algo"],
     )
-    no_passphrase = Confirm.ask(
-        "是否不使用密码短语",
-        default=bool(current_config["no_passphrase"]),
+    passphrase = Confirm.ask(
+        "是否设置密码短语",
+        default=bool(current_config["passphrase"]),
     )
     key_password = ""
-    if not no_passphrase:
+    if passphrase:
         existing_password = current_config["key_password"]
         if existing_password:
             keep_password = Confirm.ask("保留当前已设置的密码短语", default=True)
@@ -141,7 +145,7 @@ def edit_config(config):
 
     new_config = {
         "algo": algo,
-        "no_passphrase": no_passphrase,
+        "passphrase": passphrase,
         "key_password": key_password,
         "key_name": key_name,
         "comment": comment,

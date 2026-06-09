@@ -7,7 +7,7 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.text import Text
 
-from .config import apply_config_to_args, build_config_table, edit_config, load_config
+from .config import apply_config_to_args, build_config_table, edit_config, get_default_config, load_config
 from .ssh_tools import generate_key, test_connection
 from .system_utils import deep_fix_permissions, get_base_ssh_dir, get_version
 from .ui import console
@@ -18,13 +18,14 @@ xline = "-" * 55
 
 
 def build_parser(config):
+    current_config = get_default_config(config)
     parser = argparse.ArgumentParser(description="SSH 密钥生成及测试工具")
-    parser.add_argument("--algo", default=config.get("algo", "ed25519"), choices=["ed25519", "rsa", "ecdsa"], help="加密算法")
-    parser.add_argument("--comment", default=config.get("comment"), help="密钥注释 (建议填写邮箱)")
-    parser.add_argument("--folder-name", default=config.get("folder_name", "new-key"), help="~/.ssh 下的子文件夹名")
-    parser.add_argument("--key-name", default=config.get("key_name"), help="密钥文件名 (默认根据算法命名)")
-    parser.add_argument("--no-passphrase", action="store_true", default=config.get("no_passphrase", False), help="不使用密码短语")
-    parser.add_argument("--key-password", default=config.get("key_password"), help="自动填充的密码短语")
+    parser.add_argument("--algo", default=current_config["algo"], choices=["ed25519", "rsa", "ecdsa"], help="加密算法")
+    parser.add_argument("--comment", default=current_config["comment"], help="密钥注释 (建议填写邮箱)")
+    parser.add_argument("--folder-name", default=current_config["folder_name"], help="~/.ssh 下的子文件夹名")
+    parser.add_argument("--key-name", default=current_config["key_name"], help="密钥文件名 (默认根据算法命名)")
+    parser.add_argument("--passphrase", action=argparse.BooleanOptionalAction, default=current_config["passphrase"], help="是否设置密码短语")
+    parser.add_argument("--key-password", default=current_config["key_password"], help="自动填充的密码短语")
     parser.add_argument("--force", action="store_true", help="强制覆盖现有密钥")
     return parser
 
@@ -42,7 +43,7 @@ def handle_generate_key(args):
 
     table.add_row("加密算法", args.algo)
 
-    if args.no_passphrase:
+    if not args.passphrase:
         pass_status = "不使用"
     elif args.key_password:
         pass_status = "已预设 (从配置加载)"
@@ -62,7 +63,7 @@ def handle_generate_key(args):
         return
 
     passphrase = ""
-    if not args.no_passphrase:
+    if args.passphrase:
         if args.key_password:
             passphrase = args.key_password
             console.print("\n[info][✓] 使用预设的密码短语[/]")
@@ -118,7 +119,7 @@ def main():
             input("\n操作完成，按回车键返回菜单...")
 
         elif choice == "2":
-            test_connection(args.folder_name, args.key_password, args.no_passphrase)
+            test_connection(args.folder_name, args.key_password, args.passphrase)
             input("\n测试完成，按回车键返回菜单...")
 
         elif choice == "3":

@@ -42,14 +42,15 @@ uv run main.py
     "algo": "ed25519",
     "folder_name": "new-key",
     "key_name": null,
-    "no_passphrase": false,
+    "passphrase": true,
     "key_password": "your-password-here"
 }
 ```
 
 - `folder_name`: 会在系统 `~/.ssh/` 目录下创建此名称的子文件夹。
 - `key_name`: 密钥的文件名（留空则根据算法自动命名）。
-- `key_password`: 预设密钥密码。当 `no_passphrase` 为 `false` 时，程序将自动使用此密码而不再询问。
+- `passphrase`: 是否设置密码短语。`true` 表示设置密码，`false` 表示不设置密码。
+- `key_password`: 预设密钥密码。当 `passphrase` 为 `true` 时，程序将自动使用此密码而不再询问。
 
 ### 4. 命令行参数
 
@@ -72,7 +73,7 @@ uv run main.py --help
 | `--comment` | 密钥注释 (通常填邮箱) | `comment` |
 | `--folder-name` | `~/.ssh/` 下的子文件夹名 | `folder_name` |
 | `--key-name` | 密钥文件名 | `key_name` |
-| `--no-passphrase` | 不使用密码短语 | `no_passphrase` |
+| `--passphrase` / `--no-passphrase` | 设置或不设置密码短语 | `passphrase` |
 | `--key-password` | 自动填充的密码短语 | `key_password` |
 | `--force` | 强制覆盖现有文件 | - |
 

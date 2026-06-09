@@ -76,7 +76,7 @@ def generate_key(algo, comment, output_path, passphrase, force=False):
         sys.exit(1)
 
 
-def test_connection(folder_name, key_password=None, no_passphrase=False):
+def test_connection(folder_name, key_password=None, passphrase=False):
     """测试 SSH 连接"""
     host = folder_name
     console.print(f"\n[info][...] 正在准备连接 {host}...[/]")
@@ -85,7 +85,7 @@ def test_connection(folder_name, key_password=None, no_passphrase=False):
 
     console.print(Panel(
         f"[yellow]执行命令:[/] [cyan]{' '.join(cmd)}[/]\n"
-        f"[dim]配置状态: {'无密码' if no_passphrase else '需要输入密码'}[/]",
+        f"[dim]配置状态: {'需要输入密码' if passphrase else '无密码'}[/]",
         title="连接测试",
         border_style="cyan",
         expand=True,
@@ -95,7 +95,7 @@ def test_connection(folder_name, key_password=None, no_passphrase=False):
         return
 
     try:
-        if no_passphrase:
+        if not passphrase:
             with console.status("[info]正在建立连接...[/]", spinner="dots"):
                 result = subprocess.run(cmd, capture_output=True, text=True)
 
@@ -113,8 +113,7 @@ def test_connection(folder_name, key_password=None, no_passphrase=False):
         else:
             console.print(f"\n[error][✗] 连接失败 (返回码: {result.returncode})[/]")
             console.print("[warning][!] 如果看到 'Permission denied'，强烈建议执行菜单中的 [bold]‘深度修复权限’[/] 后再试。[/]")
-            if not no_passphrase:
+            if passphrase:
                 console.print("[dim]提示：请同时检查密码是否正确或密钥是否已添加到 Agent。[/]")
     except Exception as e:
         console.print(f"[error][✗] 测试出错: {e}[/]")
-
