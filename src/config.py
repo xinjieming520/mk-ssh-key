@@ -11,6 +11,15 @@ from .ui import console
 
 logger = logging.getLogger(__name__)
 
+CONFIG_LABELS = {
+    "algo": "密钥加密算法",
+    "no_passphrase": "不设置密码",
+    "key_password": "密码文本",
+    "key_name": "文件名",
+    "comment": "备注信息",
+    "folder_name": "目录名",
+}
+
 
 def load_config():
     """从 config.json 加载配置"""
@@ -59,11 +68,16 @@ def format_config_value(key, value):
 
 
 def build_config_table(config):
-    table = Table(title="当前配置 (config.json)", show_header=True, border_style="cyan", expand=True)
-    table.add_column("字段", style="cyan", no_wrap=True)
-    table.add_column("值")
+    table = Table(
+        title="当前配置 (config.json)",
+        show_header=True,
+        border_style="cyan",
+        expand=False,
+    )
+    table.add_column("字段", style="cyan", no_wrap=True, ratio=1)
+    table.add_column("值", overflow="fold", ratio=3)
     for key, value in get_default_config(config).items():
-        table.add_row(key, format_config_value(key, value))
+        table.add_row(CONFIG_LABELS.get(key, key), format_config_value(key, value))
     return table
 
 
@@ -85,7 +99,7 @@ def edit_config(config):
         build_config_table(current_config),
         title="[bold cyan]修改配置[/]",
         border_style="cyan",
-        expand=True,
+        expand=False,
     ))
 
     algo = Prompt.ask(
@@ -133,4 +147,3 @@ def edit_config(config):
     save_config(new_config)
     console.print("[success][✓] 配置已更新并保存到 config.json[/]")
     return new_config
-

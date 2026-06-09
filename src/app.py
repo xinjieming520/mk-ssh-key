@@ -35,7 +35,7 @@ def handle_generate_key(args):
     target_path = target_dir / target_name
     comment = args.comment or "my-email@example.com"
 
-    table = Table(title="当前密钥配置", show_header=False, border_style="cyan", expand=True)
+    table = Table(title="当前密钥配置", show_header=False, border_style="cyan", expand=False)
     table.add_column(justify="center", style="cyan")
     table.add_column(justify="left")
 
@@ -106,7 +106,7 @@ def main():
             Group(header_text, build_config_table(config), menu_text),
             style="cyan",
             border_style="cyan",
-            expand=True,
+            expand=False,
         ))
 
         choice = Prompt.ask("\n请选择操作", choices=["1", "2", "3", "4", "0"], default="1")
@@ -131,4 +131,3 @@ def main():
         elif choice == "0":
             console.print("[info]感谢使用，再见！[/]")
             break
-
