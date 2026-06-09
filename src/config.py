@@ -15,9 +15,9 @@ CONFIG_LABELS = {
     "algo": "密钥算法",
     "passphrase": "设置密码",
     "key_password": "密码文本",
+    "folder_name": "目录名",
     "key_name": "文件名",
     "comment": "备注信息",
-    "folder_name": "目录名",
 }
 
 
@@ -55,9 +55,9 @@ def get_default_config(config):
         "algo": config.get("algo", "ed25519"),
         "passphrase": passphrase,
         "key_password": config.get("key_password", ""),
+        "folder_name": config.get("folder_name", "new-key"),
         "key_name": config.get("key_name"),
         "comment": config.get("comment"),
-        "folder_name": config.get("folder_name", "new-key"),
     }
 
 
@@ -130,6 +130,10 @@ def edit_config(config):
         else:
             key_password = Prompt.ask("密码短语 (直接回车表示不预设)", password=True, default="")
 
+    folder_name = Prompt.ask(
+        "~/.ssh 下的子文件夹名",
+        default=current_config["folder_name"],
+    ).strip() or "new-key"
     key_name = Prompt.ask(
         "密钥文件名 (直接回车表示按算法自动命名)",
         default=current_config["key_name"] or "",
@@ -138,18 +142,14 @@ def edit_config(config):
         "密钥注释",
         default=current_config["comment"] or "",
     ).strip() or None
-    folder_name = Prompt.ask(
-        "~/.ssh 下的子文件夹名",
-        default=current_config["folder_name"],
-    ).strip() or "new-key"
 
     new_config = {
         "algo": algo,
         "passphrase": passphrase,
         "key_password": key_password,
+        "folder_name": folder_name,
         "key_name": key_name,
         "comment": comment,
-        "folder_name": folder_name,
     }
     save_config(new_config)
     console.print("[success][✓] 配置已更新并保存到 config.json[/]")
