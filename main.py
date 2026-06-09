@@ -290,10 +290,10 @@ def main():
     while True:
         console.clear()
         header_text = Text.from_markup(
-            f"[bold]SSH 密钥管理工具[/]\n[dim]依赖检测：{git_info} | {ssh_info}[/]", 
-            justify="center"
+            f"[bold]SSH 密钥管理工具[/]\n\n[dim]依赖检测：\n  {git_info} | {ssh_info}[/]"
+            # justify="center"
         )
-        console.print(Panel(header_text, style="cyan", border_style="cyan", expand=True))
+        console.print(Panel(header_text, style="cyan", border_style="cyan", expand=False))
         
         console.print("\n[bold cyan]1.[/] 生成 SSH 密钥")
         console.print("[bold cyan]2.[/] 测试 SSH 连接")
