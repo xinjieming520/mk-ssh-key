@@ -95,15 +95,15 @@ def main():
     while True:
         console.clear()
         header_text = Text.from_markup(
-            f"[bold]SSH 密钥管理工具[/]\n\n依赖检测：\n  {git_info} | {ssh_info}\n{xline}"
+            f"[bold]🔐 SSH 密钥管理工具[/]\n\n🔎 依赖检测：\n  {git_info} | {ssh_info}\n{xline}"
         )
         menu_text = Text.from_markup(
             f"{xline}"
-            "\n[bold cyan]1.[/] 生成密钥\n"
-            "[bold cyan]2.[/] 测试连接\n"
-            "[bold cyan]3.[/] 修复权限\n"
-            "[bold cyan]4.[/] 修改配置\n"
-            "[bold cyan]0.[/] 退出程序"
+            "\n[bold cyan]1.[/] 🔑 生成密钥\n"
+            "[bold cyan]2.[/] 🔗 测试连接\n"
+            "[bold cyan]3.[/] 🛡️ 修复权限\n"
+            "[bold cyan]4.[/] ⚙️ 修改配置\n"
+            "[bold cyan]0.[/] 🚪 退出程序"
         )
         console.print(Panel(
             Group(header_text, build_config_table(config), menu_text),
