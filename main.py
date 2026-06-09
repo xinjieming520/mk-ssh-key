@@ -5,10 +5,11 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
 from rich.syntax import Syntax
+from rich.table import Table
 from rich.theme import Theme
 
 # 配置日志
@@ -43,6 +44,109 @@ def load_config():
             logger.error(f"读取 config.json 失败: {e}")
             console.print(f"[warning][!] 无法读取 config.json: {e}[/]")
     return {}
+
+def save_config(config):
+    """保存配置到 config.json"""
+    config_path = Path("config.json")
+    config_path.write_text(
+        json.dumps(config, ensure_ascii=False, indent=4) + "\n",
+        encoding="utf-8"
+    )
+    logger.info("配置已保存到 config.json")
+
+def get_default_config(config):
+    """合并默认配置，避免 config.json 缺少字段时菜单显示为空。"""
+    return {
+        "algo": config.get("algo", "ed25519"),
+        "no_passphrase": config.get("no_passphrase", False),
+        "key_password": config.get("key_password", ""),
+        "key_name": config.get("key_name"),
+        "comment": config.get("comment"),
+        "folder_name": config.get("folder_name", "new-key"),
+    }
+
+def format_config_value(key, value):
+    if key == "key_password":
+        return "[dim]<空>[/]" if not value else "[yellow]已设置 (隐藏)[/]"
+    if value is None or value == "":
+        return "[dim]<空>[/]"
+    if isinstance(value, bool):
+        return "[green]true[/]" if value else "[yellow]false[/]"
+    return str(value)
+
+def build_config_table(config):
+    table = Table(title="当前配置 (config.json)", show_header=True, border_style="cyan", expand=True)
+    table.add_column("字段", style="cyan", no_wrap=True)
+    table.add_column("值")
+    for key, value in get_default_config(config).items():
+        table.add_row(key, format_config_value(key, value))
+    return table
+
+def apply_config_to_args(args, config):
+    current_config = get_default_config(config)
+    args.algo = current_config["algo"]
+    args.no_passphrase = current_config["no_passphrase"]
+    args.key_password = current_config["key_password"]
+    args.key_name = current_config["key_name"]
+    args.comment = current_config["comment"]
+    args.folder_name = current_config["folder_name"]
+
+def edit_config(config):
+    """交互式修改 config.json"""
+    current_config = get_default_config(config)
+
+    console.print(Panel(
+        build_config_table(current_config),
+        title="[bold cyan]修改配置[/]",
+        border_style="cyan",
+        expand=True
+    ))
+
+    algo = Prompt.ask(
+        "加密算法",
+        choices=["ed25519", "rsa", "ecdsa"],
+        default=current_config["algo"]
+    )
+    no_passphrase = Confirm.ask(
+        "是否不使用密码短语",
+        default=bool(current_config["no_passphrase"])
+    )
+    key_password = ""
+    if not no_passphrase:
+        existing_password = current_config["key_password"]
+        if existing_password:
+            keep_password = Confirm.ask("保留当前已设置的密码短语", default=True)
+            if keep_password:
+                key_password = existing_password
+            else:
+                key_password = Prompt.ask("新的密码短语 (直接回车表示不预设)", password=True, default="")
+        else:
+            key_password = Prompt.ask("密码短语 (直接回车表示不预设)", password=True, default="")
+
+    key_name = Prompt.ask(
+        "密钥文件名 (直接回车表示按算法自动命名)",
+        default=current_config["key_name"] or ""
+    ).strip() or None
+    comment = Prompt.ask(
+        "密钥注释",
+        default=current_config["comment"] or ""
+    ).strip() or None
+    folder_name = Prompt.ask(
+        "~/.ssh 下的子文件夹名",
+        default=current_config["folder_name"]
+    ).strip() or "new-key"
+
+    new_config = {
+        "algo": algo,
+        "no_passphrase": no_passphrase,
+        "key_password": key_password,
+        "key_name": key_name,
+        "comment": comment,
+        "folder_name": folder_name,
+    }
+    save_config(new_config)
+    console.print("[success][✓] 配置已更新并保存到 config.json[/]")
+    return new_config
 
 def run_command(command):
     """运行系统命令"""
@@ -277,7 +381,6 @@ def main():
 
     args = parser.parse_args()
 
-    from rich.align import Align
     from rich.text import Text
     
     # 预先检测版本
@@ -291,16 +394,22 @@ def main():
         console.clear()
         header_text = Text.from_markup(
             f"[bold]SSH 密钥管理工具[/]\n\n[dim]依赖检测：\n  {git_info} | {ssh_info}[/]"
-            # justify="center"
         )
-        console.print(Panel(header_text, style="cyan", border_style="cyan", expand=False))
+        menu_text = Text.from_markup(
+            "\n[bold cyan]1.[/] 生成 SSH 密钥\n"
+            "[bold cyan]2.[/] 测试 SSH 连接\n"
+            "[bold cyan]3.[/] 深度修复权限\n"
+            "[bold cyan]4.[/] 修改配置\n"
+            "[bold cyan]0.[/] 退出程序"
+        )
+        console.print(Panel(
+            Group(header_text, build_config_table(config), menu_text),
+            style="cyan",
+            border_style="cyan",
+            expand=True
+        ))
         
-        console.print("\n[bold cyan]1.[/] 生成 SSH 密钥")
-        console.print("[bold cyan]2.[/] 测试 SSH 连接")
-        console.print("[bold cyan]3.[/] 深度修复权限")
-        console.print("[bold cyan]0.[/] 退出程序")
-        
-        choice = Prompt.ask("\n请选择操作", choices=["1", "2", "3", "0"], default="1")
+        choice = Prompt.ask("\n请选择操作", choices=["1", "2", "3", "4", "0"], default="1")
         
         if choice == "1":
             # ... (no changes here, just keeping it for context in replace)
@@ -311,7 +420,6 @@ def main():
             comment = args.comment or "my-email@example.com"
 
             # 显示预览配置
-            from rich.table import Table
             table = Table(title="当前密钥配置", show_header=False, border_style="cyan", expand=True)
             table.add_column(justify="center", style="cyan")
             table.add_column(justify="left")
@@ -365,10 +473,19 @@ def main():
         elif choice == "3":
             deep_fix_permissions()
             input("\n修复完成，按回车键返回菜单...")
+
+        elif choice == "4":
+            config = edit_config(config)
+            apply_config_to_args(args, config)
+            input("\n配置完成，按回车键返回菜单...")
             
         elif choice == "0":
             console.print("[info]感谢使用，再见！[/]")
             break
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        console.print("\n[warning][!] 已取消操作，程序已退出。[/]")
+        logger.info("用户通过 Ctrl+C 退出程序")
