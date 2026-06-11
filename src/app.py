@@ -99,10 +99,10 @@ def main():
         )
         menu_text = Text.from_markup(
             f"{xline}"
-            "\n[bold cyan]1.[/] 🔑 生成密钥\n"
-            "[bold cyan]2.[/] 🔗 测试连接\n"
-            "[bold cyan]3.[/] 🛡️ 修复权限\n"
-            "[bold cyan]4.[/] ⚙️ 修改配置\n"
+            "\n[bold cyan]1.[/] 🔑 生成密钥  [dim]根据当前(config.json)配置生成SSH密钥[/]\n"
+            "[bold cyan]2.[/] 🔗 测试连接  [dim]需手动编辑(~/.ssh/config)文件，再运行测试[/]\n"
+            "[bold cyan]3.[/] 🛡️ 修复权限  [dim]修复(~/.ssh/)目录下相关文件权限[/]\n"
+            "[bold cyan]4.[/] ⚙️ 修改配置  [dim]交互方式修改(config.json)配置文件[/]\n"
             "[bold cyan]0.[/] 🚪 退出程序"
         )
         console.print(Panel(

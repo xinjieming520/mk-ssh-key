@@ -21,7 +21,7 @@ CONFIG_LABELS = {
 
 CONFIG_DESCRIPTIONS = {
     "algo": "密钥算法(ed25519/rsa)",
-    "passphrase": "true/false(设置/不设置密码)",
+    "passphrase": "true/false(有/无密码)",
     "key_password": "留空时需手动输入",
     "comment": "公钥备注(通常填写邮箱)",
 }
@@ -69,7 +69,7 @@ def get_default_config(config):
 
 def format_config_value(key, value):
     if key == "key_password":
-        return "[dim]<空>[/]" if not value else "[yellow]已设置 (隐藏)[/]"
+        return "[dim]<空>[/]" if not value else "[yellow]已设置(隐藏)[/]"
     if value is None or value == "":
         return "[dim]<空>[/]"
     if isinstance(value, bool):
@@ -89,13 +89,13 @@ def get_config_description(key, config):
 def build_config_table(config):
     current_config = get_default_config(config)
     table = Table(
-        title="当前配置 (config.json)",
+        title="⚙️ 当前配置(config.json)",
         show_header=True,
         border_style="cyan",
         expand=False,
     )
     table.add_column("字段", style="cyan", no_wrap=True, ratio=1)
-    table.add_column("值", overflow="fold", ratio=3)
+    table.add_column("值", style="green", overflow="fold", ratio=3)
     table.add_column("说明", style="dim", overflow="fold", ratio=4)
     for key, value in current_config.items():
         if key == "key_password" and not current_config["passphrase"]:

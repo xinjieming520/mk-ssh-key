@@ -72,7 +72,7 @@ def deep_fix_permissions():
                         run_command(f'icacls "{path}" /grant:r {username}:F /c')
                     success_count += 1
                 except Exception as e:
-                    console.print(f"[red]⚠️  权限修复失败: {path} - {e}[/]")
+                    console.print(f"[red]⚠️ 权限修复失败: {path} - {e}[/]")
                     fail_count += 1
 
     console.print("\n[bold cyan]🔑 正在修复 SSH 敏感文件权限...[/]\n")
